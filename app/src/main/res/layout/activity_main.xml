@@ -16,7 +16,7 @@
             android:text="HRT • Budzik radiowy" android:textColor="#58D6C2"
             android:textSize="32sp" android:textStyle="bold" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="Wersja TESTOWA. Po wybraniu Test za 2 min wyłącz telewizor pilotem. Nie używaj na razie jako jedynego budzika."
+            android:text="Wersja v0.3 TESTOWA: lokalny ADB 127.0.0.1:5555. Najpierw autoryzuj klucz RSA tej aplikacji. Nie używaj jako jedynego budzika."
             android:textColor="#DDE5EA" android:textSize="17sp" android:paddingTop="10dp" />
         <RadioGroup android:id="@+id/radioStations"
             android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -40,6 +40,11 @@
             <Button android:id="@+id/btnStop" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="■ Zatrzymaj" android:textAllCaps="false" android:textSize="18sp" />
         </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Lokalny ADB — najpierw autoryzacja na TCL (wymaga Debugowania USB)"
+            android:textColor="#58D6C2" android:textSize="21sp" android:paddingTop="15dp" />
+        <Button android:id="@+id/btnLocalAdb" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Sprawdź / autoryzuj lokalne ADB" android:textAllCaps="false" android:textSize="18sp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="Test wybudzania ze standby" android:textColor="#58D6C2" android:textSize="23sp" android:paddingTop="15dp"/>
         <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
