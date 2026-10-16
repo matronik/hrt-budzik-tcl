@@ -57,6 +57,18 @@ public class MainActivity extends Activity {
             refresh();
         });
         findViewById(R.id.btnPermissions).setOnClickListener(v -> requestPermissionsForAlarm());
+        findViewById(R.id.btnLocalAdb).setOnClickListener(v -> {
+            message("Laczenie ADB do 127.0.0.1:5555. Jesli wyskoczy pytanie, zaznacz Zawsze zezwalaj.");
+            new Thread(() -> {
+                LocalAdbClient.Result r = LocalAdbClient.execute(
+                        getApplicationContext(), "getprop ro.build.version.sdk", 11000);
+                LogBook.add(getApplicationContext(), "TEST lokalnego ADB: " + r);
+                runOnUiThread(() -> {
+                    message(r.ok ? "Lokalny ADB autoryzowany — mozna testowac budzik" : "Lokalny ADB: sprawdz dziennik i okno autoryzacji");
+                    refresh();
+                });
+            }, "HRT-ADB-Authorize").start();
+        });
         statusText.setOnClickListener(v -> refresh());
         logText.setOnClickListener(v -> refresh());
         refresh();
