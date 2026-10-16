@@ -16,7 +16,7 @@ public class AlarmActivity extends Activity {
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_alarm);
-        LogBook.add(this, "ALARM ACTIVITY WIDOCZNA — ekran wybudzony");
+        LogBook.add(this, "ALARM ACTIVITY WIDOCZNA (nie dowodzi samodzielnego wybudzenia)");
         Button stop = findViewById(R.id.stopAlarm);
         stop.requestFocus();
         stop.setOnClickListener(v -> {
