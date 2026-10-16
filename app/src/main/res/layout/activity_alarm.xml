@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#081A26" android:orientation="vertical"
+    android:gravity="center" android:padding="50dp">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="HRT • RADIO GRA" android:textSize="42sp" android:textStyle="bold" android:textColor="#58D6C2" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Alarm z TCL — test wybudzenia" android:textSize="22sp" android:textColor="#FFFFFF" android:layout_marginTop="22dp" />
+    <Button android:id="@+id/stopAlarm" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="ZATRZYMAJ RADIO"
+        android:textSize="22sp" android:layout_marginTop="42dp" />
+</LinearLayout>
