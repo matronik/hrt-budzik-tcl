@@ -27,7 +27,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         LogBook.add(context, "Przed proba wybudzenia: interactive=" + pm.isInteractive()
                 + ", API=" + Build.VERSION.SDK_INT);
         PowerManager.WakeLock cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "HRT:alarm-start");
-        cpu.acquire(20000L);
+        cpu.acquire(30000L);
 
         try {
             AlarmScheduler.onAlarmTriggered(context);
@@ -70,6 +70,26 @@ public class AlarmReceiver extends BroadcastReceiver {
         } catch (RuntimeException ex) {
             LogBook.add(context, "BLAD alarmu: " + ex);
         }
-        // CPU wake lock ma 20-sekundowy timeout; nie zwalniamy przed startem uslugi.
+        // Pozostawamy poza watkiem UI i poza watkiem BroadcastReceiver:
+        // lokalny ADB uzywa socketu i moze czekac na autoryzacje.
+        final PendingResult pending = goAsync();
+        final Context app = context.getApplicationContext();
+        Thread wakeThread = new Thread(() -> {
+            try {
+                LogBook.add(app, "Lokalny ADB: proba wyslania KEYCODE_WAKEUP przez 127.0.0.1:5555");
+                LocalAdbClient.Result result = LocalAdbClient.execute(app, "input keyevent 224", 5000);
+                LogBook.add(app, "Lokalny ADB: " + result);
+                try { Thread.sleep(1200L); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                PowerManager power = (PowerManager) app.getSystemService(Context.POWER_SERVICE);
+                LogBook.add(app, "1200 ms po lokalnym ADB: interactive=" + power.isInteractive());
+            } catch (Throwable ex) {
+                LogBook.add(app, "Lokalny ADB nieudany: " + ex);
+            } finally {
+                pending.finish();
+            }
+        }, "HRT-LocalADB-Wakeup");
+        wakeThread.start();
+        // CPU wake lock ma 30-sekundowy timeout, dlatego procesor moze dokonczyc ADB.
+
     }
 }
