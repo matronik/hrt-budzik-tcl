@@ -23,6 +23,8 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private RadioGroup radioGroup;
     private EditText customUrl, timeText;
+    private EditText volumeStart, volumeTarget, rampMinutes;
+    private CheckBox rampEnabled, audioOnly;
     private TextView statusText, logText;
     private CheckBox[] days;
 
@@ -32,6 +34,11 @@ public class MainActivity extends Activity {
         radioGroup = findViewById(R.id.radioStations);
         customUrl = findViewById(R.id.customUrl);
         timeText = findViewById(R.id.timeText);
+        volumeStart = findViewById(R.id.volumeStart);
+        volumeTarget = findViewById(R.id.volumeTarget);
+        rampMinutes = findViewById(R.id.rampMinutes);
+        rampEnabled = findViewById(R.id.rampEnabled);
+        audioOnly = findViewById(R.id.audioOnly);
         statusText = findViewById(R.id.statusText);
         logText = findViewById(R.id.logText);
         days = new CheckBox[] {
@@ -40,7 +47,7 @@ public class MainActivity extends Activity {
         };
         restoreSettings();
         findViewById(R.id.btnPlay).setOnClickListener(v -> {
-            if (!storeStation()) return;
+            if (!storeStation() || !saveAlarmOptions()) return;
             launchRadio(RadioService.ACTION_PLAY);
             refresh();
         });
@@ -57,6 +64,20 @@ public class MainActivity extends Activity {
             refresh();
         });
         findViewById(R.id.btnPermissions).setOnClickListener(v -> requestPermissionsForAlarm());
+        findViewById(R.id.btnSaveOptions).setOnClickListener(v -> {
+            if (storeStation() && saveAlarmOptions()) message("Ustawienia budzika zapisane");
+            refresh();
+        });
+        findViewById(R.id.btnTestAudioOnly).setOnClickListener(v -> {
+            if (!saveAlarmOptions()) return;
+            message("Test: TCL za ok. 9 sekund wygasi ekran. Radio musi juz grac.");
+            new Thread(() -> {
+                LogBook.add(getApplicationContext(), "RECZNY TEST Tylko dzwiek: start");
+                LocalAdbClient.Result r = TclAudioOnly.enable(getApplicationContext());
+                LogBook.add(getApplicationContext(), "RECZNY TEST Tylko dzwiek: " + r.detail);
+                runOnUiThread(this::refresh);
+            }, "HRT-Test-AudioOnly").start();
+        });
         findViewById(R.id.btnLocalAdb).setOnClickListener(v -> {
             message("Laczenie ADB do 127.0.0.1:5555. Jesli wyskoczy pytanie, zaznacz Zawsze zezwalaj.");
             new Thread(() -> {
@@ -79,6 +100,11 @@ public class MainActivity extends Activity {
         int station = p.getInt("station", 1);
         radioGroup.check(station == 2 ? R.id.radio2 : station == 3 ? R.id.radio3 : station == 4 ? R.id.radioCustom : R.id.radio1);
         customUrl.setText(p.getString("custom_url", ""));
+        volumeStart.setText(Integer.toString(p.getInt("volume_start", 5)));
+        volumeTarget.setText(Integer.toString(p.getInt("volume_target", 45)));
+        rampMinutes.setText(Integer.toString(p.getInt("ramp_minutes", 10)));
+        rampEnabled.setChecked(p.getBoolean("ramp_enabled", true));
+        audioOnly.setChecked(p.getBoolean("audio_only", false));
         timeText.setText(String.format(Locale.ROOT, "%02d:%02d", p.getInt("hour", 6), p.getInt("minute", 30)));
         int daysMask = p.getInt("days", 31); // Monday through Friday.
         for (int i = 0; i < days.length; i++) days[i].setChecked((daysMask & (1 << i)) != 0);
@@ -95,6 +121,30 @@ public class MainActivity extends Activity {
         Prefs.get(this).edit().putInt("station", station).putString("custom_url", url).apply();
         return true;
     }
+    private boolean saveAlarmOptions() {
+        try {
+            int begin = Integer.parseInt(volumeStart.getText().toString().trim());
+            int end = Integer.parseInt(volumeTarget.getText().toString().trim());
+            int minutes = Integer.parseInt(rampMinutes.getText().toString().trim());
+            if (begin < 0 || begin > 100 || end < 1 || end > 100
+                    || minutes < 1 || minutes > 60 || begin > end) {
+                message("Podaj start 0-100%, cel 1-100% (cel >= start), czas 1-60 min");
+                return false;
+            }
+            Prefs.get(this).edit()
+                    .putInt("volume_start", begin)
+                    .putInt("volume_target", end)
+                    .putInt("ramp_minutes", minutes)
+                    .putBoolean("ramp_enabled", rampEnabled.isChecked())
+                    .putBoolean("audio_only", audioOnly.isChecked())
+                    .apply();
+            return true;
+        } catch (NumberFormatException ex) {
+            message("Glosnosc i czas musza byc liczbami calkowitymi");
+            return false;
+        }
+    }
+
     private void launchRadio(String action) {
         Intent i = new Intent(this, RadioService.class).setAction(action);
         try {
@@ -106,7 +156,7 @@ public class MainActivity extends Activity {
         }
     }
     private void testAfter(int minutes) {
-        if (!storeStation()) return;
+        if (!storeStation() || !saveAlarmOptions()) return;
         if (!AlarmScheduler.hasExactPermission(this)) {
             message("Najpierw nadaj uprawnienie: Alarmy i przypomnienia");
             requestPermissionsForAlarm();
@@ -122,7 +172,7 @@ public class MainActivity extends Activity {
         refresh();
     }
     private void scheduleWeekly() {
-        if (!storeStation()) return;
+        if (!storeStation() || !saveAlarmOptions()) return;
         String value = timeText.getText().toString().trim();
         if (!value.matches("\\d{1,2}:\\d{2}")) {
             message("Wpisz godzinę HH:mm, np. 06:30"); return;
@@ -187,6 +237,12 @@ public class MainActivity extends Activity {
                 + "\nNastępny alarm: " + AlarmScheduler.format(next)
                 + "\nOstatni alarm odebrany przez Android: " + AlarmScheduler.format(fired)
                 + "\nWybrana stacja: " + Prefs.stationName(this)
+                + "\nGlosnosc aplikacji: "
+                + (p.getBoolean("ramp_enabled", true)
+                ? (p.getInt("volume_start", 5) + "% -> " + p.getInt("volume_target", 45)
+                    + "% / " + p.getInt("ramp_minutes", 10) + " min")
+                : (p.getInt("volume_target", 45) + "% stala"))
+                + "\nTylko dzwiek po alarmie: " + (p.getBoolean("audio_only", false) ? "TAK" : "nie")
                 + "\nDOTKNIJ STATUSU, BY ODŚWIEŻYĆ.";
         statusText.setText(status);
         logText.setText(p.getString("log", "Brak zdarzeń"));
