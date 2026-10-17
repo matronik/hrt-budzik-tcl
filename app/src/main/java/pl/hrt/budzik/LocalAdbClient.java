@@ -55,7 +55,8 @@ public final class LocalAdbClient {
     /** Musi byc wywolywane poza glownym watkiem UI. */
     public static Result execute(Context ctx, String command, int socketTimeoutMs) {
         if (!"input keyevent 224".equals(command)
-                && !"getprop ro.build.version.sdk".equals(command)) {
+                && !"getprop ro.build.version.sdk".equals(command)
+                && !TclAudioOnly.ADB_SEQUENCE.equals(command)) {
             return new Result(false, "Niedozwolona komenda lokalnego ADB");
         }
         try {
